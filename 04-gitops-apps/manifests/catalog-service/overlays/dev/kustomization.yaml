@@ -7,4 +7,4 @@ namespace: catalog-service-dev
 images:
 - name: catalog-service
   newName: 438950223046.dkr.ecr.eu-central-1.amazonaws.com/myapp/catalog-service
-  newTag: 60cad7f
+  newTag: 522a29d
