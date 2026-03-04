@@ -1,0 +1,2 @@
+# ☁️ End-to-End Cloud Native Platform (AWS, EKS, GitOps)
+Hi there! Welcome to my comprehensive Cloud & DevOps portfolio project. As a Junior DevOps Engineer, I built this end-to-end platform to demonstrate production-grade architecture, moving beyond simple tutorials to solve real-world engineering problems like FinOps, Shift-Left Security, and Day-2 Operations.
