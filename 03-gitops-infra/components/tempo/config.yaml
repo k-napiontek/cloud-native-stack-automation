@@ -1,0 +1,5 @@
+app: tempo
+chart: tempo
+repoURL: oci://ghcr.io/grafana-community/helm-charts/tempo
+version: "1.26.4"
+namespace: monitoring

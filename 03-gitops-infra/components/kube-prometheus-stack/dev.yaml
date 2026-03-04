@@ -1,0 +1,51 @@
+prometheus:
+  prometheusSpec:
+    replicas: 1
+    retention: 2d
+    # resources:
+    #   requests:
+    #     memory: "512Mi"
+    #   limits:
+    #     memory: "1Gi"
+    storageSpec:
+      emptyDir: {}
+
+alertmanager:
+  alertmanagerSpec:
+    replicas: 1
+
+grafana:
+  # admin:
+  #   existingSecret: grafana-admin-credentials
+  #   userKey: admin-user
+  #   passwordKey: admin-password
+  additionalDataSources:
+    - name: Loki
+      type: loki
+      url: http://dev-infra-loki-gateway.monitoring.svc:80
+      access: proxy
+      isDefault: false
+    - name: Tempo
+      type: tempo
+      url: http://dev-infra-tempo:3100
+      access: proxy
+      isDefault: false
+
+
+  grafana.ini:
+    server:
+      root_url: https://grafana.dev.bzyk0945.site
+  ingress:
+    enabled: true
+    ingressClassName: alb
+    annotations:
+      alb.ingress.kubernetes.io/target-type: ip
+      alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+      alb.ingress.kubernetes.io/backend-protocol: HTTP
+      alb.ingress.kubernetes.io/scheme: internal
+      alb.ingress.kubernetes.io/certificate-arn: ""
+      alb.ingress.kubernetes.io/group.name: "dev-cluster-alb"
+      external-dns.alpha.kubernetes.io/hostname: grafana.dev.bzyk0945.site
+    hosts:
+      - grafana.dev.bzyk0945.site
+    

@@ -1,0 +1,7 @@
+operatorConfig:
+  hostname: "tailscale-operator"
+  defaultTags:
+    - "tag:k8s-operator"
+  extraEnv:
+    - name: TS_ROUTES
+      value: "10.0.0.0/16"

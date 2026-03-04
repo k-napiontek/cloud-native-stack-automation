@@ -1,0 +1,2 @@
+# Base configuration for Tailscale Operator
+# Specific settings are loaded from environment files (e.g. dev.yaml)

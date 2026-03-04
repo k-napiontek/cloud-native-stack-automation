@@ -1,0 +1,8 @@
+provider: aws
+registry: "txt"
+policy: sync
+logLevel: info
+
+serviceAccount:
+  create: true
+  name: external-dns-sa

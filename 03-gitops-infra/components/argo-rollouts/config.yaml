@@ -1,0 +1,5 @@
+app: argo-rollouts
+chart: argo-rollouts
+repoURL: https://argoproj.github.io/argo-helm
+version: "2.40.4"
+namespace: argo-rollouts

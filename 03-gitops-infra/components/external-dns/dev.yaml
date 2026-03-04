@@ -1,0 +1,11 @@
+domainFilters:
+  - "bzyk0945.site"
+
+txtOwnerId: "dev-main"
+
+# resources:
+#   requests:
+#     memory: "50Mi"
+#     cpu: "20m"
+#   limits:
+#     memory: "100Mi"

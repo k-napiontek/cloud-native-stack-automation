@@ -1,0 +1,5 @@
+app: aws-load-balancer-controller
+chart: aws-load-balancer-controller
+repoURL: https://aws.github.io/eks-charts
+version: "3.1.0"
+namespace: kube-system

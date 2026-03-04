@@ -1,0 +1,50 @@
+gateway:
+  replicas: 1
+
+chunksCache:
+  allocatedMemory: 512Mi
+  persistence:
+    enabled: false
+
+loki:
+  storage:
+    bucketNames:
+      chunks: dev-main-loki-chunks
+      ruler: dev-main-loki-chunks
+      admin: dev-main-loki-chunks
+    s3:
+      region: eu-central-1
+
+write:
+  replicas: 2
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 512Mi
+  persistence:
+    volumeClaimsEnabled: false # TODO: IN PROD ENABLE VOLUME CLAIMS
+
+read:
+  replicas: 2
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 512Mi
+
+backend:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 512Mi
+  persistence:
+    volumeClaimsEnabled: false # TODO: IN PROD ENABLE VOLUME CLAIMS
+
+gateway:
+  replicas: 1
