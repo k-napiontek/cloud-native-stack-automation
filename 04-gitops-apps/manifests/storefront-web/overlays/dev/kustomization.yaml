@@ -9,4 +9,4 @@ resources:
 images:
 - name: storefront-web
   newName: 438950223046.dkr.ecr.eu-central-1.amazonaws.com/myapp/storefront-web
-  newTag: ebc68ce
+  newTag: 522a29d
