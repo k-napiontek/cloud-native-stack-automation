@@ -1,0 +1,39 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: dev-cluster-microservices
+  namespace: argocd
+spec:
+  generators:
+  - git:
+      repoURL: https://github.com/k-napiontek/cloud-native-stack-automation.git # TODO: Change to the actual repo URL
+      revision: main
+      directories:
+        - path: 04-gitops-apps/manifests/*
+  template:
+    metadata:
+      name: 'dev-{{path.basename}}'
+      labels:
+        environment: dev
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/k-napiontek/cloud-native-stack-automation.git # TODO: Change to the actual repo URL
+        targetRevision: main
+        path: '{{path}}/overlays/dev'
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: '{{path.basename}}-dev'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true
+        retry:
+          limit: 5
+          backoff:
+            duration: 5s
+            factor: 2
+            maxDuration: 3m

@@ -1,0 +1,10 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- ../../base
+- network-policy.yaml
+namespace: catalog-service-dev
+images:
+- name: catalog-service
+  newName: 438950223046.dkr.ecr.eu-central-1.amazonaws.com/myapp/catalog-service
+  newTag: 83c72c1

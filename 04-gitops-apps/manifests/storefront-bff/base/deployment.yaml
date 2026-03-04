@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: storefront-bff
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: storefront-bff
+  template:
+    metadata:
+      labels:
+        app: storefront-bff
+    spec:
+      containers:
+        - name: storefront-bff
+          image: storefront-bff
+          env:
+            - name: CATALOG_SERVICE_URL
+              value: "http://catalog-service.catalog-service-dev.svc.cluster.local:8081"
+            - name: INVENTORY_SERVICE_URL
+              value: "http://inventory-service.inventory-service-dev.svc.cluster.local:8082"
+          

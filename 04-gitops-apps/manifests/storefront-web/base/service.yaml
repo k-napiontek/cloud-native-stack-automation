@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: storefront-web
+  labels:
+    app: storefront-web
+spec:
+  selector:
+    app: storefront-web
+  ports:
+    - port: 80
+      targetPort: 80
+      protocol: TCP
+      name: http
