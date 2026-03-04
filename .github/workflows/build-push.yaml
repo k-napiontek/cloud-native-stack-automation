@@ -1,0 +1,156 @@
+name: Build and Push Container Images
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 02-app-source-code/**
+    tags:
+      - "**-v[0-9]*.[0-9]*.[0-9]*" # service/foo/bar-X.Y.Z
+
+  workflow_dispatch:
+    inputs:
+      service:
+        description: "Service to build"
+        type: choice
+        required: true
+        options:
+          - 02-app-source-code/catalog-service
+          - 02-app-source-code/inventory-service
+          - 02-app-source-code/storefront-web
+          - 02-app-source-code/storefront-bff
+      version:
+        description: "Version/tag to use (optional; defaults generating with git describe)"
+        required: false
+        type: string
+
+permissions:
+  id-token: write
+  actions: write
+  contents: read
+
+jobs:
+  filter:
+    runs-on: ubuntu-latest
+    outputs:
+      services: ${{ steps.set-output.outputs.services }}
+      environment: ${{ steps.set-output.outputs.environment }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        if: ${{ github.event_name == 'push' && github.ref_type == 'branch' && github.ref_name == 'main' }}
+        with:
+          fetch-depth: 0
+      - name: Paths Changes Filter
+        id: filter
+        uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
+        if: ${{ github.event_name == 'push' && github.ref_type == 'branch' && github.ref_name == 'main' }}
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          filters: .github/utils/file-filters.yaml
+      - name: Set Output
+        id: set-output
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo 'services=["${{ inputs.service }}"]' >> "$GITHUB_OUTPUT"
+            echo 'environment=dev' >> "$GITHUB_OUTPUT"
+
+          elif [[ "${{ github.ref_type }}" == "tag" ]]; then
+            tag="${GITHUB_REF_NAME}"        
+            svc="${tag%-v*}"
+            echo "services=[\"$svc\"]" >> "$GITHUB_OUTPUT"
+            echo 'environment=staging' >> "$GITHUB_OUTPUT"
+
+          else # push to main
+            echo 'services=${{ steps.filter.outputs.changes }}' >> "$GITHUB_OUTPUT"
+            echo 'environment=dev' >> "$GITHUB_OUTPUT"
+          fi
+
+  build-push-container-images:
+    runs-on: ubuntu-latest
+    if: ${{ needs.filter.outputs.services != '[]' && needs.filter.outputs.services != '' }}
+    needs: filter
+    strategy:
+      matrix:
+        service: ${{ fromJson(needs.filter.outputs.services) }}
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@ff7abcd0c3c05ccf6adc123a8cd1fd4fb30fb493 # v5.0.0
+        with:
+          fetch-depth: 0
+
+      - name: Resolve AWS role for service
+        id: aws-role
+        run: |
+          SERVICE_NAME=$(basename "${{ matrix.service }}")
+          ROLE_ARN="arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/myapp-${SERVICE_NAME}-github-actions"
+          echo "role_arn=${ROLE_ARN}" >> "$GITHUB_OUTPUT"
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4 
+        with:
+          role-to-assume: ${{ steps.aws-role.outputs.role_arn }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@1583c0f09d26c58c59d25b0eef29792b7ce99d9a # v3.11.1
+
+      - name: Compute image tag
+        id: image-tag
+        working-directory: ${{ matrix.service }}
+        env:
+          ENVIRONMENT: ${{ needs.filter.outputs.environment }}
+          INPUT_VERSION: ${{ github.event_name == 'workflow_dispatch' && inputs.version || '' }}
+          SERVICE: ${{ matrix.service }} 
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          SERVICE_NAME=$(basename $SERVICE)
+          
+          if [[ -n "$INPUT_VERSION" ]]; then
+            VERSION="$INPUT_VERSION"
+            
+          elif [[ "$ENVIRONMENT" == "staging" ]]; then
+            VERSION=${GITHUB_REF_NAME#*@} 
+            VERSION=${VERSION#*v}
+            
+          else
+            VERSION=$(git rev-parse --short HEAD)
+          fi
+
+          FULL_IMAGE="${REGISTRY}/myapp/${SERVICE_NAME}:${VERSION}" # TODO: change to the correct service name
+
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "image_tag=${FULL_IMAGE}" >> "$GITHUB_OUTPUT"
+          echo "service_name=${SERVICE_NAME}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push Docker images
+        uses: docker/build-push-action@ccc2b40e9ea6518f9252a22a990f8e868370f62e # v6.18.0
+        with:
+          context: ${{ matrix.service }}
+          push: true
+          tags: ${{ steps.image-tag.outputs.image_tag }}
+          platforms: linux/amd64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Trigger deploy as a separate workflow to:
+      #   1. enable running it manually via workflow_dispatch
+      #   2. keep workflows smaller and more focused
+      - name: Trigger Deploy
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh workflow run update-gitops-manifests.yaml \
+            -f service=${{ matrix.service }} \
+            -f version=${{ steps.image-tag.outputs.version }} \
+            -f environment=${{ needs.filter.outputs.environment }}
+      
+
