@@ -1,0 +1,91 @@
+traverse_to_nested_projects: false
+auto_merge: false
+pr_locks: true
+comment_render_mode: basic
+respect_layers: true
+
+generate_projects:
+  blocks:
+    - block_name: dev
+      terragrunt: true
+      root_dir: "01-terraform-infra/envs/dev/"
+      workflow: with-infracost
+      include_patterns:
+        - "01-terraform-infra/modules/**"
+        - "01-terraform-infra/root.hcl"
+        - "01-terraform-infra/envs/_env.hcl"
+
+    - block_name: staging
+      terragrunt: true
+      root_dir: "01-terraform-infra/envs/staging/"
+      workflow: with-approval
+      include_patterns:
+        - "01-terraform-infra/root.hcl"
+        - "01-terraform-infra/envs/_env.hcl"
+
+    - block_name: prod
+      terragrunt: true
+      root_dir: "01-terraform-infra/envs/prod/"
+      workflow: with-approval
+      include_patterns:
+        - "01-terraform-infra/root.hcl"
+        - "01-terraform-infra/envs/_env.hcl"
+
+    - block_name: shared
+      terragrunt: true
+      root_dir: "01-terraform-infra/envs/shared/"
+      workflow: with-approval
+      include_patterns: 
+      - "01-terraform-infra/modules/ecr/**"
+
+
+  terragrunt_parsing:
+    parallel: true
+    createProjectName: true
+    createWorkspace: true
+    defaultWorkflow: default
+    executionOrderGroups: true
+    cascadeDependencies: false  
+    triggerProjectsFromDirOnly: true 
+
+workflows:
+  default:
+    plan:
+      steps:
+        - init
+        - plan
+        
+        - run: |
+            echo "=== CHECKOV SECURITY REPORT ===" | tee -a $DIGGER_OUT
+            PLAN_FILE=$(find "$(pwd)" -name "*.tfplan" | head -n 1)
+            if [ -n "$PLAN_FILE" ]; then
+              terragrunt show -json "$PLAN_FILE" > plan.json
+              checkov -f plan.json --output cli --quiet --compact --soft-fail | tee -a $DIGGER_OUT
+            else
+              echo "Error: Plan file for Checkov not found!" | tee -a $DIGGER_OUT
+            fi
+            echo " " | tee -a $DIGGER_OUT
+
+        - run: |
+            if [[ "$PROJECT_NAME" == *"_dev_"* ]]; then
+              echo "=== INFRACOST REPORT ===" | tee -a $DIGGER_OUT
+              infracost breakdown --path=. | tee -a $DIGGER_OUT
+            else
+              echo "Skipping Infracost for environment: $PROJECT_NAME"
+            fi
+
+    apply:
+      steps:
+        - init
+        - apply
+        
+    workflow_configuration:
+      on_pull_request_pushed: [digger plan]
+      on_pull_request_closed: [digger unlock]
+      on_commit_to_default: [digger unlock]
+
+
+
+
+
+

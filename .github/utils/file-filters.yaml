@@ -1,0 +1,11 @@
+02-app-source-code/catalog-service:
+  - '02-app-source-code/catalog-service/**'
+
+02-app-source-code/inventory-service:
+  - '02-app-source-code/inventory-service/**'
+
+02-app-source-code/storefront-bff:
+  - '02-app-source-code/storefront-bff/**'
+
+02-app-source-code/storefront-web:
+  - '02-app-source-code/storefront-web/**'

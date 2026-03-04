@@ -1,0 +1,114 @@
+name: Update GitOps Manifests
+
+on:
+  workflow_dispatch:
+    inputs:
+      service:
+        description: "Path to the service to deploy"
+        required: true
+        type: choice
+        options:
+          - 02-app-source-code/catalog-service
+          - 02-app-source-code/inventory-service
+          - 02-app-source-code/storefront-web
+          - 02-app-source-code/storefront-bff
+      version:
+        description: "Version to deploy"
+        required: true
+        type: string
+      environment:
+        description: "Target environment to deploy to"
+        required: true
+        type: choice
+        options:
+          - dev
+          - staging
+          - production
+
+concurrency:
+  group: ${{ github.workflow }}-gitops-${{ inputs.environment }}-${{ inputs.service }}
+  cancel-in-progress: false
+
+jobs:
+  update-manifests:
+    runs-on: ubuntu-24.04
+    environment: ${{ inputs.environment }}
+    permissions:
+      contents: write 
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main 
+          fetch-depth: 0 
+
+      - name: Update Image Tag using Kustomize
+        shell: bash
+        env:
+          AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
+          AWS_REGION: ${{ vars.AWS_REGION }}
+        run: |
+          set -euo pipefail
+    
+          SERVICE_NAME=$(basename "${{ inputs.service }}")
+          ENVIRONMENT="${{ inputs.environment }}"
+          NEW_TAG="${{ inputs.version }}"
+          REGISTRY="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+          FULL_IMAGE="${REGISTRY}/myapp/${SERVICE_NAME}:${NEW_TAG}"
+    
+          TARGET_DIR="04-gitops-apps/manifests/${SERVICE_NAME}/overlays/${ENVIRONMENT}"
+          
+          echo "Updating $SERVICE_NAME to $FULL_IMAGE in $TARGET_DIR"
+          
+          if [ ! -d "$TARGET_DIR" ]; then
+            echo "Error: Directory $TARGET_DIR does not exist!"
+            exit 1
+          fi
+          
+          cd "$TARGET_DIR"
+          kustomize edit set image $SERVICE_NAME=$FULL_IMAGE
+          cat kustomization.yaml
+
+      - name: Commit & push (with exponential backoff)
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          find . -type f \( -name "*.yaml" -o -name "*.yml" \) -not -path "*/\.github/*" -exec git add {} +
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit. The manifest already has the correct tag."
+            exit 0
+          fi
+
+          SERVICE_NAME=$(basename "${{ inputs.service }}")
+          COMMIT_MSG="chore(gitops): update ${SERVICE_NAME} to ${{ inputs.version }} on ${{ inputs.environment }} [skip ci]"
+          git commit -m "$COMMIT_MSG"
+
+          MAX_RETRIES=5
+          attempt=1
+          
+          while [ $attempt -le $MAX_RETRIES ]; do
+            git fetch origin main
+
+            if ! git rebase origin/main; then
+              echo "Rebase failed; aborting rebase and trying again..."
+              git rebase --abort || true
+            fi
+
+            if git push origin HEAD:main; then
+              echo "Push succeeded on attempt $attempt"
+              exit 0
+            fi
+
+            sleep_time=$(( 2 ** attempt + RANDOM % 3 ))
+            echo "Push failed (attempt $attempt). Retrying in ${sleep_time}s..."
+            sleep "$sleep_time"
+
+            attempt=$(( attempt + 1 ))
+          done
+
+          echo "Push failed after $MAX_RETRIES attempts" >&2
+          exit 1

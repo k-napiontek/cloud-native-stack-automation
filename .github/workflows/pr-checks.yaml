@@ -1,0 +1,64 @@
+name: PR Quality & Security Checks
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '02-app-source-code/**'
+
+jobs:
+  filter:
+    runs-on: ubuntu-latest
+    outputs:
+      services: ${{ steps.filter.outputs.changes }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Paths Changes Filter
+        id: filter
+        uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          filters: .github/utils/file-filters.yaml
+
+  quality-and-security:
+    needs: filter
+    if: ${{ needs.filter.outputs.services != '[]' && needs.filter.outputs.services != '' }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: ${{ fromJson(needs.filter.outputs.services) }}
+      fail-fast: false 
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: ./.github/actions/setup-dependencies
+        with:
+          install_task: "true"
+          install_go: ${{ startsWith(matrix.service, '02-app-source-code/inventory-service/') }}
+          install_node: ${{ startsWith(matrix.service, '02-app-source-code/storefront-bff/') || startsWith(matrix.service, '02-app-source-code/storefront-web/') }}
+          install_python: ${{ startsWith(matrix.service, '02-app-source-code/catalog-service/') }}
+          service_path: ${{ matrix.service }}
+     
+      - name: Run Application CI (Lint, Test, SAST, SCA)
+        working-directory: ${{ matrix.service }}
+        run: task ci
+
+      - name: Build local Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.service }}
+          push: false  
+          load: true    
+          tags: local-test-image:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Container Security Scan (Trivy)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'local-test-image:${{ github.sha }}'
+          format: 'table'
+          exit-code: '1' 
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
