@@ -1,11 +1,11 @@
 {
-    "01-terraform-infra/modules/vpc": "1.0.0",
-    "01-terraform-infra/modules/route53": "1.0.0",
-    "01-terraform-infra/modules/rds": "1.0.0",
-    "01-terraform-infra/modules/eks": "1.0.0",
-    "01-terraform-infra/modules/ecr": "1.0.0",
-    "02-app-source-code/catalog-service": "1.0.0",
-    "02-app-source-code/inventory-service": "1.0.0",
-    "02-app-source-code/storefront-web": "1.0.0",
-    "02-app-source-code/storefront-bff": "1.0.0"
+    "01-terraform-infra/modules/vpc": "1.1.0",
+    "01-terraform-infra/modules/route53": "1.1.0",
+    "01-terraform-infra/modules/rds": "1.1.0",
+    "01-terraform-infra/modules/eks": "1.1.0",
+    "01-terraform-infra/modules/ecr": "1.1.0",
+    "02-app-source-code/catalog-service": "1.1.0",
+    "02-app-source-code/inventory-service": "1.1.0",
+    "02-app-source-code/storefront-web": "1.1.0",
+    "02-app-source-code/storefront-bff": "1.1.0"
 }
