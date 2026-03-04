@@ -1,0 +1,62 @@
+# ApplicationSet 1: Helm charty platformowe
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: dev-platform-infra
+  namespace: argocd
+spec:
+  generators:
+    - git:
+        repoURL: 'https://github.com/k-napiontek/cloud-native-stack-automation.git' # TODO: CHANGE TO YOUR OWN REPO
+        revision: HEAD
+        files:
+          - path: '03-gitops-infra/components/*/config.yaml'
+  template:
+    metadata:
+      name: 'dev-infra-{{app}}'
+      namespace: argocd
+      annotations:
+        argocd.argoproj.io/sync-wave: "-1"
+    spec:
+      project: default
+      ignoreDifferences:
+        - group: admissionregistration.k8s.io
+          kind: MutatingWebhookConfiguration
+          jqPathExpressions:
+            - '.webhooks[]?.clientConfig.caBundle'
+        - group: admissionregistration.k8s.io
+          kind: ValidatingWebhookConfiguration
+          jqPathExpressions:
+            - '.webhooks[]?.clientConfig.caBundle'
+        - kind: Secret
+          name: aws-load-balancer-tls
+          jqPathExpressions:
+            - '.data'
+        - group: apiextensions.k8s.io
+          kind: CustomResourceDefinition
+          jqPathExpressions:
+            - '.status'
+      sources:
+        - repoURL: '{{repoURL}}'
+          chart: '{{chart}}'
+          targetRevision: '{{version}}'
+          helm:
+            valueFiles:
+              - $values/03-gitops-infra/components/{{app}}/base.yaml
+              - $values/03-gitops-infra/components/{{app}}/dev.yaml
+        - repoURL: 'https://github.com/k-napiontek/cloud-native-stack-automation.git' # TODO: CHANGE TO YOUR OWN REPO
+          targetRevision: HEAD
+          ref: values
+      destination:
+        server: 'https://kubernetes.default.svc'
+        namespace: '{{namespace}}'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true
+          - PrunePropagationPolicy=foreground
+          - PruneLast=true
+          - RespectIgnoreDifferences=true

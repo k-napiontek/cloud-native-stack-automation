@@ -1,0 +1,22 @@
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: tailscale-oauth
+  namespace: tailscale-operator
+spec:
+  refreshInterval: "1h"
+  secretStoreRef:
+    name: aws-secrets-manager 
+    kind: ClusterSecretStore
+  target:
+    name: operator-oauth
+    creationPolicy: Owner
+  data:
+    - secretKey: client_id
+      remoteRef:
+        key: dev/tailscale-oauth-v2
+        property: client_id
+    - secretKey: client_secret
+      remoteRef:
+        key: dev/tailscale-oauth-v2
+        property: client_secret

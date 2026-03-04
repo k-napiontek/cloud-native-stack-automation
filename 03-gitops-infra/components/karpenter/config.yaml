@@ -1,0 +1,5 @@
+app: karpenter
+chart: karpenter
+repoURL: public.ecr.aws/karpenter
+version: "1.9.0"
+namespace: kube-system

@@ -1,0 +1,10 @@
+replicas: 1
+
+settings:
+  clusterName: dev-main
+  interruptionQueue: Karpenter-dev-main
+
+controller:
+  env:
+    - name: AWS_REGION
+      value: eu-central-1

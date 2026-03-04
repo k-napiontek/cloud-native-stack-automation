@@ -1,0 +1,5 @@
+app: loki
+chart: loki
+repoURL: https://grafana.github.io/helm-charts
+version: "6.53.0"
+namespace: monitoring

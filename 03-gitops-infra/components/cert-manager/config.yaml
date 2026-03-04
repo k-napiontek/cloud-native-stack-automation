@@ -1,0 +1,5 @@
+app: cert-manager
+chart: cert-manager
+repoURL: https://charts.jetstack.io
+version: "1.19.4"
+namespace: cert-manager
