@@ -54,7 +54,7 @@ tasks:
   test:
     desc: "Run unit tests with coverage report"
     cmds:
-      - "{{.VENV_BIN}}/pytest --cov=. --cov-report=term-missing"
+      - "PYTHONPATH=src {{.VENV_BIN}}/pytest tests/ --cov=src --cov-report=term-missing"
 
   sec:sast:
     desc: "Run Static Application Security Testing (SAST)"
