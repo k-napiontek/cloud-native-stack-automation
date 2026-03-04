@@ -1,0 +1,69 @@
+version: "3"
+
+vars:
+  APP_DIR: "."
+
+tasks:
+  default:
+    desc: "List all available tasks"
+    cmds:
+      - task --list
+    silent: true
+
+  deps:
+    desc: "Install frontend dependencies"
+    cmds:
+      - npm ci
+
+  format:
+    desc: "Auto-format code using Prettier"
+    cmds:
+      - npx --yes prettier --write .
+
+  lint:
+    desc: "Run static code analysis using ESLint"
+    cmds:
+      - npx eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0
+
+  typecheck:
+    desc: "Run static type checking using TypeScript"
+    cmds:
+      - npx tsc -b
+
+  test:
+    desc: "Run unit tests with coverage report using Vitest"
+    cmds:
+      - npx vitest run --coverage
+
+  sec:sca:
+    desc: "Run Software Composition Analysis"
+    cmds:
+      - npm audit
+
+  build:
+    desc: "Build application for production"
+    cmds:
+      - npx vite build
+
+  ci:
+    desc: "Run all CI checks (Format, Lint, Typecheck, Test, Build)"
+    deps: [deps]
+    cmds:
+      - echo "Running Formatter..."
+      - task format
+      - echo "Running Linter..."
+      - task lint
+      - echo "Running Type Checker..."
+      - task typecheck
+      - echo "Running Security Scans (SCA)..."
+      - task sec:sca
+      - echo "Running Unit Tests..."
+      - task test
+      - echo "Building static assets..."
+      - task build
+
+  run:
+    desc: "Run the Vite development server"
+    deps: [deps]
+    cmds:
+      - npx vite
