@@ -1,0 +1,88 @@
+version: '3'
+
+vars:
+  APP_DIR: "."
+  PORT: "8081"
+  VENV_DIR: ".venv"
+  VENV_BIN: "{{.VENV_DIR}}/bin"
+  PIP: "{{.VENV_BIN}}/pip"
+  PYTHON: "{{.VENV_BIN}}/python"
+
+tasks:
+  default:
+    desc: "List all available tasks"
+    cmds:
+      - task --list
+    silent: true
+
+  venv:
+    internal: true 
+    status:
+      - test -d {{.VENV_DIR}}
+    cmds:
+      - python3 -m venv {{.VENV_DIR}}
+      - "{{.PIP}} install --upgrade pip"
+
+  deps:
+    desc: "Install production dependencies into .venv"
+    deps: [venv]
+    cmds:
+      - "{{.PIP}} install -r requirements.txt"
+
+  deps:dev:
+    desc: "Install DevSecOps dependencies into .venv"
+    deps: [venv]
+    cmds:
+      - "{{.PIP}} install -r requirements-dev.txt"
+
+  format:
+    desc: "Auto-format code and sort imports using Ruff"
+    cmds:
+      - "{{.VENV_BIN}}/ruff check --select I --fix {{.APP_DIR}}"
+      - "{{.VENV_BIN}}/ruff format {{.APP_DIR}}"
+
+  lint:
+    desc: "Run static code analysis (Linter)"
+    cmds:
+      - "{{.VENV_BIN}}/ruff check {{.APP_DIR}}"
+
+  typecheck:
+    desc: "Run static type checking"
+    cmds:
+      - "{{.VENV_BIN}}/mypy {{.APP_DIR}} --ignore-missing-imports"
+
+  test:
+    desc: "Run unit tests with coverage report"
+    cmds:
+      - "{{.VENV_BIN}}/pytest --cov=. --cov-report=term-missing"
+
+  sec:sast:
+    desc: "Run Static Application Security Testing (SAST)"
+    cmds:
+      - "{{.VENV_BIN}}/bandit -r {{.APP_DIR}} -x './.venv/*' -ll"
+
+  sec:sca:
+    desc: "Run Software Composition Analysis (SCA)"
+    cmds:
+      - "{{.VENV_BIN}}/pip-audit"
+
+
+  ci:
+    desc: "Run all CI checks (Lint, Typecheck, Security, Test)"
+    deps: [deps, deps:dev]
+    cmds:
+      - echo "Running Linter..."
+      - task lint
+      - echo "Running Type Checker..."
+      - task typecheck
+      - echo "Running Security Scans (SAST & SCA)..."
+      - task sec:sast
+      - task sec:sca
+      - echo "Running Unit Tests..."
+      - task test
+
+  run:
+    desc: "Run the FastAPI application locally"
+    deps: [deps]
+    cmds:
+      - "{{.VENV_BIN}}/uvicorn main:app --host 0.0.0.0 --port {{.PORT}} --reload"
