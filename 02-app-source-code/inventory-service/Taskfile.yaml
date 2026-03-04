@@ -1,0 +1,80 @@
+version: '3'
+
+vars:
+  APP_DIR: "."
+  MAIN_FILE: "./src/main.go"
+  COVERAGE_FILE: "coverage.out"
+  BINARY_NAME: "inventory-service"
+
+tasks:
+  default:
+    desc: "List all available tasks"
+    cmds:
+      - task --list
+    silent: true
+
+  deps:
+    desc: "Download and tidy dependencies (go mod tidy & download)"
+    cmds:
+      - go mod tidy
+      - go mod download
+
+  format:
+    desc: "Auto-format code using go fmt"
+    cmds:
+      - go fmt ./...
+
+  lint:
+    desc: "Run static code analysis and linters"
+    cmds:
+      - go vet ./...
+      - golangci-lint run ./...
+
+  test:
+    desc: "Run unit tests with coverage report"
+    cmds:
+      - go test -v -coverprofile={{.COVERAGE_FILE}} ./...
+      - go tool cover -func={{.COVERAGE_FILE}}
+
+  sec:sast:
+    desc: "Run Static Application Security Testing (gosec)"
+    cmds:
+      - gosec ./...
+
+  sec:sca:
+    desc: "Run Software Composition Analysis (govulncheck)"
+    cmds:
+      - govulncheck ./...
+
+  build:
+    desc: "Compile application into a binary"
+    cmds:
+      - go build -o {{.BINARY_NAME}} {{.MAIN_FILE}}
+
+
+  ci:
+    desc: "Run all CI checks (Format, Lint, Security, Test, Build)"
+    deps: [deps]
+    cmds:
+      - echo "Running Formatter..."
+      - task format
+      - echo "Running Linter..."
+      - task lint
+      - echo "Running Security Scans (SAST & SCA)..."
+      - task sec:sast
+      - task sec:sca
+      - echo "Running Unit Tests..."
+      - task test
+      - echo "Building binary..."
+      - task build
+
+  run:
+    desc: "Run the application locally"
+    deps: [deps]
+    cmds:
+      - go run {{.MAIN_FILE}}
+
+  clean:
+    desc: "Remove temporary files and binaries"
+    cmds:
+      - rm -f {{.BINARY_NAME}} {{.COVERAGE_FILE}}
