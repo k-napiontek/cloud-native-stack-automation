@@ -1,0 +1,42 @@
+configs:
+  cm:
+    url: "https://argocd.dev.bzyk0945.site"
+    dex.config: |
+      connectors:
+        - type: github
+          id: github
+          name: GitHub
+          config:
+            clientID: "Ov23lioN0OZxn64jTC0V"
+            clientSecret: "$argocd-github-secret:clientSecret"
+    resource.customizations.ignoreDifferences.admissionregistration.k8s.io_MutatingWebhookConfiguration: |
+      jsonPointers:
+        - /webhooks/0/clientConfig/caBundle
+        - /webhooks/1/clientConfig/caBundle
+        - /webhooks/2/clientConfig/caBundle
+    resource.customizations.ignoreDifferences.admissionregistration.k8s.io_ValidatingWebhookConfiguration: |
+      jsonPointers:
+        - /webhooks/0/clientConfig/caBundle
+        - /webhooks/1/clientConfig/caBundle
+        - /webhooks/2/clientConfig/caBundle
+  params:
+    controller.diff.server.side: "true"
+  rbac:
+    policy.default: role:readonly
+    policy.csv: |
+      g, k-napiontek, role:admin
+    scopes: '[groups, email]'
+
+server:
+  ingress:
+    enabled: true
+    ingressClassName: alb
+    annotations:
+      alb.ingress.kubernetes.io/scheme: internal
+      alb.ingress.kubernetes.io/target-type: ip
+      alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+      alb.ingress.kubernetes.io/backend-protocol: HTTPS
+      alb.ingress.kubernetes.io/certificate-arn: ""
+      external-dns.alpha.kubernetes.io/hostname: argocd.dev.bzyk0945.site
+      alb.ingress.kubernetes.io/group.name: "dev-cluster-alb"
+    hostname: argocd.dev.bzyk0945.site
