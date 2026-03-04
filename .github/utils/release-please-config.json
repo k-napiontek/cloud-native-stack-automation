@@ -4,31 +4,40 @@
   "pull-request-title-pattern": "chore(${component}): release ${version}",
   "packages": {
     "01-terraform-infra/modules/vpc": {
-      "release-type": "terraform-module"
+      "release-type": "terraform-module",
+      "component": "tf-vpc"
     },
     "01-terraform-infra/modules/route53": {
-      "release-type": "terraform-module"
+      "release-type": "terraform-module",
+      "component": "tf-route53"
     },
     "01-terraform-infra/modules/rds": {
-      "release-type": "terraform-module"
+      "release-type": "terraform-module",
+      "component": "tf-rds"
     },
     "01-terraform-infra/modules/eks": {
-      "release-type": "terraform-module"
+      "release-type": "terraform-module",
+      "component": "tf-eks"
     },
     "01-terraform-infra/modules/ecr": {
-      "release-type": "terraform-module"
+      "release-type": "terraform-module",
+      "component": "tf-ecr"
     },
     "02-app-source-code/catalog-service": {
-      "release-type": "python"
+      "release-type": "python",
+      "component": "catalog-service"
     },
     "02-app-source-code/inventory-service": {
-      "release-type": "go"
+      "release-type": "go",
+      "component": "inventory-service"
     },
     "02-app-source-code/storefront-web": {
-      "release-type": "node"
+      "release-type": "node",
+      "component": "storefront-web"
     },
     "02-app-source-code/storefront-bff": {
-      "release-type": "node"
+      "release-type": "node",
+      "component": "storefront-bff"
     }
   }
 }
