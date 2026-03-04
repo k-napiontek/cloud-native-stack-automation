@@ -29,7 +29,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 COPY --from=builder /opt/venv /opt/venv
 
-COPY --chown=appuser:appgroup main.py .
+COPY --chown=appuser:appgroup src/main.py ./main.py
 
 USER appuser
 
