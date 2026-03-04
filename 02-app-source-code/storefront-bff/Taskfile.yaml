@@ -1,0 +1,79 @@
+version: '3'
+
+vars:
+  APP_DIR: "."
+  PORT: "8080"
+
+tasks:
+  default:
+    desc: "List all available tasks"
+    cmds:
+      - task --list
+    silent: true
+
+  deps:
+    desc: "Install Node.js dependencies (equivalent to pip install / go mod tidy)"
+    cmds:
+      - npm ci
+
+  format:
+    desc: "Auto-format code using Prettier"
+    cmds:
+      - npx prettier --write "src/**/*.{ts,js}"
+
+  lint:
+    desc: "Run static code analysis using ESLint"
+    cmds:
+      - npx eslint .
+
+  typecheck:
+    desc: "Run static type checking using TypeScript Compiler"
+    cmds:
+      - npx tsc --noEmit
+
+  test:
+    desc: "Run unit tests with coverage report using Jest"
+    env:
+      NODE_ENV: test
+    cmds:
+      - npx jest --coverage
+
+  sec:sca:
+    desc: "Run Software Composition Analysis (dependency vulnerabilities)"
+    cmds:
+      - npm audit
+
+  sec:sast:
+    desc: "Run Static Application Security Testing"
+    cmds:
+      - echo "Running SAST checks via ESLint..."
+      - npx eslint . --ext .ts
+
+  build:
+    desc: "Transpile TypeScript to JavaScript"
+    cmds:
+      - npx tsc
+
+  ci:
+    desc: "Run all CI checks (Format, Typecheck, Lint, Security, Test, Build)"
+    deps: [deps]
+    cmds:
+      - echo "Running Formatter..."
+      - task format
+      - echo "Running Type Checker..."
+      - task typecheck
+      - echo "Running Linter..."
+      - task lint
+      - echo "Running Security Scans (SAST & SCA)..."
+      - task sec:sast
+      - task sec:sca
+      - echo "Running Unit Tests..."
+      - task test
+      - echo "Building application..."
+      - task build
+
+  run:
+    desc: "Run the application locally in development mode"
+    deps: [deps]
+    cmds:
+      - npx ts-node app.ts
