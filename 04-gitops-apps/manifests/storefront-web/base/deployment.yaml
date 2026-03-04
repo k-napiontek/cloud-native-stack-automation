@@ -1,0 +1,18 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: storefront-web
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: storefront-web
+  template:
+    metadata:
+      labels:
+        app: storefront-web
+    spec:
+      containers:
+        - name: storefront-web
+          image: storefront-web
+          
