@@ -1,3 +1,4 @@
+clusterName: "dev-main"
 replicaCount: 1
 
 resources:
