@@ -154,6 +154,22 @@ This section covers the `03-gitops-infra/` repository. Once Terraform/OpenTofu p
 
 
 
+<p align="center">
+  <img src="./docs/monitoring.png" alt="Monitoring">
+</p>
+
+### 🤔 3.3 Platform Design Decision
+
+**Why is `cert-manager` intentionally omitted from this stack?**
+
+In many standard Kubernetes tutorials, `cert-manager` is installed to automatically provision Let's Encrypt certificates. However, this platform relies on cloud-native AWS services to reduce cluster overhead and operational complexity:
+
+* **Edge TLS Termination:** The AWS Application Load Balancer (ALB) operates at Layer 7 and handles all HTTPS decryption at the edge of the VPC.
+* **AWS Certificate Manager (ACM):** The TLS certificate is provisioned, attached to the ALB, and automatically rotated by AWS ACM via OpenTofu, entirely replacing the need for an in-cluster certificate operator.
+* **Internal Routing:** Once decrypted by the ALB, traffic is forwarded safely to the Kubernetes Pods over plain HTTP within the secure, private boundaries of the VPC.
+* **Simplified Operations:** Eliminating `cert-manager` removes the need to maintain its Custom Resource Definitions (CRDs), admission webhooks, and Let's Encrypt API rate limits, resulting in a lighter and more resilient cluster.
+
+
 
 <br />
 
